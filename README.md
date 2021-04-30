@@ -1,2 +1,61 @@
-# pytorch-dataset-with-np.mmapped
-PyTorch Dataset workflow/example with memory-mapped Numpy data
+# PyTorch Custom Dataset with Memory Mapped Numpy Array #
+
+PyTorch's Dataset and Dataloader together make up a dynamic duo if you want to decouple your data loading script from the model training one. Dataset provides a clean way to load your data whereas Dataloader wraps an iterator around the dataset and provides easy batch access while training using Python's in built multiprocessing module. Dataloader intelligently batch-access the samples in the folder while dealing with filestream and other operations with _multiprocessing_. 
+
+Most of the existing examples on how to create custom PyTorch datasets are primarily geared toward Computer Vision (CV) tasks. While really straighforward, these examples can be a little obscuring and off-putting for people who do not share that background. Below is, at best, a quick starter on how to create your custom datasets and interact with them using Dataloader
+
+# Topics
+- [Fundamentals](#fundamentals)
+- [Examples](#examples)
+- [Further Reads](#further-reads)
+
+
+## Fundamentals 
+PyTorch's Dataset is an abstract class. The very first step of creating a custom dataset is to inherit this abstract class. Below is the scaleton of a custom PyTorch dataset
+
+```python
+from torch.utils.data import Dataset
+
+class CustomDataset(Dataset):
+  def __init__(self,...):
+    # initialization of dataset. 
+    # The usual parameters are: file path names for data, file path names for labels
+    
+  def __len__(self):
+    # returns the number of samples in the dataset.
+    
+  def __getitem__(self,idx):
+    # returns the samples and corresponding labels given the index "idx". 
+    # This is the interface through which DataLoader communicates with Dataset
+  
+  
+```
+
+A little note about `__init__(self,...)`: This is essentially constructor and is called when the custom dataset class is instantiated. Intelligently distributing tasks between `__init__(self)` and `__getitem__(self)` is crucial. An exmaple of a good practice is, loading/transforming/filtering labels in it. 
+
+## Example
+The workflow is: Saving your dataset as numpy array -> loading it with Memory-mapped mode -> Creating custom dataset by inheriting Dataset -> Interact with Dataloader.
+
+First, let `dataset.npy` is our dummy dataset with ~100000 samples, `labels.npy` is the corresponding labels. Here is a MWE.
+```python
+import numpy as np
+from torch.utils.data import Dataset, Dataloader
+training_data = 'dataset.npy'
+labels = 'labels.npy'
+
+class CustomDataset(Dataset):
+  def __init__(self, training_data, labels):
+    # self.mmapped acts like a numpy array
+    self.features = np.load(training_data, mmap_mode = 'r')
+    # loading the labels
+    self.labels = np.load(labels)
+    
+  def __len__(self):
+    return self.mmapped.shape[1]
+    
+  def __getitem(self,idx):
+    sample = { "sample": self.features[:,idx], "label": self.label[:,idx] }
+    return sample
+
+
+```
