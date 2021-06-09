@@ -77,3 +77,27 @@ for i, val in enumerate(trainloader):
     print(data)
     print(label)
 ```
+
+## Cross-Validation and Dataloader
+
+As we can see from the examples, Dataloader handles the hassles of creating random/non-random indices for effortless batching. This might lead to the next question, how can we use Dataloader in conjunction with cross-validation? The goal is- to be able to batch intelligently while performing cross-validation of your model. Two very useful property of Dataset/Dataloader helps in this case. 
+- A Dataset instance can be passed as an argument in the cross-validation modules provided by scikit-learn
+- `torch.utils.data` provides Sampler methods which can be utilized to integrate cross-validation modules provided by scikit-learn and Dataloader
+
+The above sounds mouthful. This is best demonstrated using an example. Here is demo of using 80-20 KFold cross-validaiton with a Dataset instance, followed by its wrapping by Dataloader.
+
+```python
+from sklearn.model_selection import KFold
+cv = KFold(n_splits=5)
+
+for fold, (train_idx, test_idx) in enumerate(cv.split(trainset)):
+    # creating sampler for training set and test set
+    train_sampler = torch.utils.data.SubsetRandomSampler(train_idx)
+    test_sampler = torch.utils.data.SubsetRandomSampler(test_idx)
+
+    # passing the samplers in the Dataloader for synchronized batching
+    train_loader = DataLoader(trainset, batch_size= 20, sampler=train_sampler)
+    test_loader = DataLoader(trainset, batch_size=20, sampler=test_sampler)
+
+    # use train_loader for training your model, use test_loader for evaluating it
+```
