@@ -1,4 +1,4 @@
-# PyTorch Custom Dataset with Memory Mapped Numpy Array #
+# PyTorch Custom Dataset with Memory Mapped Numpy Array and Cross-Validaiton #
 
 PyTorch's Dataset and Dataloader together make up a dynamic duo if you want to decouple your data loading script from the model training one. Dataset provides a clean way to load your data whereas Dataloader wraps an iterator around the dataset and provides easy batch access while training using Python's in built multiprocessing module. Dataloader intelligently batch-access the samples in the folder while dealing with filestream and other operations with _multiprocessing_. 
 
