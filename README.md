@@ -2,7 +2,9 @@
 
 PyTorch's Dataset and Dataloader together make up a dynamic duo if you want to decouple your data loading script from the model training one. Dataset provides a clean way to load your data whereas Dataloader wraps an iterator around the dataset and provides easy batch access while training using Python's in built multiprocessing module. Dataloader intelligently batch-access the samples in the folder while dealing with filestream and other operations with _multiprocessing_. 
 
-Most of the existing examples on how to create custom PyTorch datasets are primarily geared toward Computer Vision (CV) tasks. While really straighforward, these examples can be a little obscuring and off-putting for people who do not share that background. Below is, at best, a quick starter on how to create your custom datasets and interact with them using Dataloader
+Most of the existing examples on how to create custom PyTorch datasets are primarily geared toward Computer Vision (CV) tasks. While really straighforward, these examples can be a little obscuring and off-putting for people who do not share that background. The goal is, batch-access the dataset instead of loading the entire dataset in the RAM. This is especially handy when very large datasets are being used for training model (~50 GB). Below is, at best, a quick starter on how to create your custom datasets, use it to load data in memory-mapped mode and interact with them using Dataloader.
+
+A little background on memory mapping: Memory-mapped files are generally used for accessing small segments of large files on disk without storing the entire file in the RAM. However, memory-mapped files cannot be larger than 2GB on 32-bit system. I am not certain about the upper limit for 64-bit systems though. 
 
 # Topics
 - [Fundamentals](#fundamentals)
@@ -34,9 +36,9 @@ class CustomDataset(Dataset):
 A little note about `__init__(self,...)`: This is essentially constructor and is called when the custom dataset class is instantiated. Intelligently distributing tasks between `__init__(self)` and `__getitem__(self)` is crucial. An exmaple of a good practice is, loading/transforming/filtering labels in it. 
 
 ## Example
-The workflow is: Saving your dataset as numpy array -> loading it with Memory-mapped mode -> Creating custom dataset by inheriting Dataset -> Interact with Dataloader.
+The workflow is: loading the .npy dataset with Memory-mapped mode -> Creating custom dataset by inheriting Dataset -> Interact with Dataloader.
 
-First, let `dataset.npy` is our dummy dataset with ~100000 samples, `labels.npy` is the corresponding labels. Here is a MWE.
+First, let `dataset.npy` is our dummy dataset with ~1000 samples, `labels.npy` is the corresponding labels. Here is a MWE.
 ```python
 import numpy as np
 from torch.utils.data import Dataset, Dataloader
@@ -44,18 +46,34 @@ training_data = 'dataset.npy'
 labels = 'labels.npy'
 
 class CustomDataset(Dataset):
-  def __init__(self, training_data, labels):
-    # self.mmapped acts like a numpy array
-    self.features = np.load(training_data, mmap_mode = 'r')
-    # loading the labels
-    self.labels = np.load(labels)
-    
-  def __len__(self):
-    return self.mmapped.shape[1]
-    
-  def __getitem(self,idx):
-    sample = { "sample": self.features[:,idx], "label": self.label[:,idx] }
-    return sample
+    def __init__(self, training_data, training_labels):
+        # self.mmapped acts like a numpy array
+        self.features = np.load(training_data, mmap_mode='r+')
+        # loading the labels
+        self.labels = np.load(training_labels)
 
+    def __len__(self):
+        return self.features.shape[1]
 
+    def __getitem__(self, idx):
+        sample = { "sample": self.features[:,idx], "label": self.labels[:,idx] }
+        return sample
+
+```
+Note that, while loading the dataset as a memory-mapped numpy array, we used `r+` instead of ```r``` as the ```mmap_mode```. This is becaue PyTorch does not support non-writeable tensors, consequently, read-only numpy arrays.
+
+Let us instantiate the CustomDataset class and wrap it using a Dataloader to iterate over the training samples for a given size of batch.
+```python
+# instantiating a custom dataset class
+trainset = CustomDataset(training_data, training_labels)
+
+# wrapping an iterator around the dataset class
+trainloader = DataLoader(trainset, batch_size= 500, shuffle=True)
+
+# iterating over the Dataloader
+for i, val in enumerate(trainloader):
+    data = val["sample"]
+    label = val["label"]
+    print(data)
+    print(label)
 ```
