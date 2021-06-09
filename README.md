@@ -12,7 +12,7 @@ A little background on memory mapping: Memory-mapped files are generally used fo
 - [Cross-Validation and Dataloader](#further-reads)
 
 
-## Fundamentals 
+## Fundamentals
 PyTorch's Dataset is an abstract class. The very first step of creating a custom dataset is to inherit this abstract class. Below is the scaleton of a custom PyTorch dataset
 
 ```python
@@ -35,7 +35,7 @@ class CustomDataset(Dataset):
 
 A little note about `__init__(self,...)`: This is essentially constructor and is called when the custom dataset class is instantiated. Intelligently distributing tasks between `__init__(self)` and `__getitem__(self)` is crucial. An exmaple of a good practice is, loading/transforming/filtering labels in it. 
 
-## Example
+## Examples
 The workflow is: loading the .npy dataset with Memory-mapped mode -> Creating custom dataset by inheriting Dataset -> Interact with Dataloader.
 
 First, let `dataset.npy` is our dummy dataset with ~1000 samples, `labels.npy` is the corresponding labels. Here is a MWE.
